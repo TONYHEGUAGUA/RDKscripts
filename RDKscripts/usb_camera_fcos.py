@@ -29,6 +29,13 @@ from time import time
 import ctypes
 import json
 
+from shared_vars import shared_x, shared_y, data_lock
+
+def update_person_position(x, y):
+    with data_lock:  # 自动加锁
+        shared_x.value = x
+        shared_y.value = y
+
 def signal_handler(signal, frame):
     print("\nExiting program")
     sys.exit(0)
@@ -185,10 +192,15 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
         score = result['score']  # 得分
         id = int(result['id'])  # id
         name = result['name']  # 类别名称
-
-        # coor = limit_display_cord(bbox)
         coor = [round(i) for i in bbox]
         # Rescale the bbox coordinates
+        if(name == "person"):
+            if coor is not None:
+                person_x = (coor[0]+coor[2])/2
+                person_y = (coor[1]+coor[3])/2
+                print(f"[坐标更新] person_x: {person_x:.2f}, person_y: {person_y:.2f}")
+                #update_person_position(person_x, person_y)
+        # coor = limit_display_cord(bbox)
         coor[0] = int(coor[0] * scale_x)
         coor[1] = int(coor[1] * scale_y)
         coor[2] = int(coor[2] * scale_x)
@@ -211,8 +223,8 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
                     fontScale, (0, 0, 0),
                     bbox_thick // 2,
                     lineType=cv2.LINE_AA)
-        print("{} is in the picture with confidence:{:.4f}".format(
-            classes_name, score))
+        #print("{} is in the picture with confidence:{:.4f}".format(
+        #    classes_name, score))
     #    cv2.imwrite("demo.jpg", image)
     return image
 
@@ -255,7 +267,7 @@ def print_properties(pro):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
 
-    models = dnn.load('../models/fcos_512x512_nv12.bin')
+    models = dnn.load('/app/pydev_demo/models/fcos_512x512_nv12.bin')
     # 打印输入 tensor 的属性
     print_properties(models[0].inputs[0].properties)
     # 打印输出 tensor 的属性

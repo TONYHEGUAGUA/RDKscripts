@@ -4,21 +4,7 @@ collections.MutableMapping = abc.MutableMapping
 from dronekit import connect, VehicleMode
 import time
 from pymavlink import mavutil 
-
-#mavlink消息需要至少每秒发送一次
-def send_ned_yaw_rate(yaw_rate):
-    msg = vehicle.message_factory.set_position_target_local_ned_encode(
-    0,       # time_boot_ms (not used)
-    0, 0,    # target_system, target_component
-    mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # frame=1
-    1479,  # type_mask=1479（忽略位置/加速度/偏航，启用速度/偏航率） 0b10111000111 使用速度+角速度
-    0, 0, 0,          # x/y/z位置（被忽略）
-    0, 0, 0,          # vx/vy/vz速度（未使用，但type_mask启用了速度字段）
-    0, 0, 0,          # afx/afy/afz加速度（被忽略）
-    0, yaw_rate          # yaw（被忽略）、yaw_rate=0.174 rad/s
-    )
-    vehicle.send_mavlink(msg)
-
+from shared_vars import shared_x, shared_y, data_lock
 def arm_and_takeoff(aTargetAltitude):
     """
     Arms vehicle and fly to aTargetAltitude.
@@ -56,15 +42,8 @@ def arm_and_takeoff(aTargetAltitude):
         time.sleep(1)
 
 
-vehicle = connect("udp:192.168.4.2:14550", wait_ready=True)
+vehicle = connect('/dev/ttyUSB0', wait_ready=True)
 print("drone connected")
 time.sleep(1)
 arm_and_takeoff(5)
-print("Start to change yaw_rate to 10deg/s")
-time.sleep(1)
-for x in range(0,34):
-    if not(vehicle.mode == VehicleMode("GUIDED")):
-        break;
-    send_ned_yaw_rate(0.174)
-    time.sleep(1)
-#vehicle.mode = VehicleMode("LOITER")
+while(1):
