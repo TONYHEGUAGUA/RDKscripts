@@ -186,7 +186,7 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
     # Scaling factors from original to target resolution
     scale_x = target_w / ori_w
     scale_y = target_h / ori_h
-
+    person_detected = False
     for i, result in enumerate(bboxes):
         bbox = result['bbox']  # 矩形框位置信息
         score = result['score']  # 得分
@@ -195,11 +195,13 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
         coor = [round(i) for i in bbox]
         # Rescale the bbox coordinates
         if(name == "person"):
+            #检测到人了，读取坐标
             if coor is not None:
+                person_detected = True
                 person_x = (coor[0]+coor[2])/2
                 person_y = (coor[1]+coor[3])/2
                 print(f"[坐标更新] person_x: {person_x:.2f}, person_y: {person_y:.2f}")
-                #update_person_position(person_x, person_y)
+                update_person_position(person_x, person_y)
         # coor = limit_display_cord(bbox)
         coor[0] = int(coor[0] * scale_x)
         coor[1] = int(coor[1] * scale_y)
@@ -226,6 +228,10 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
         #print("{} is in the picture with confidence:{:.4f}".format(
         #    classes_name, score))
     #    cv2.imwrite("demo.jpg", image)
+    if not person_detected:
+        person_x = 256
+        person_y = 256
+        update_person_position(person_x, person_y)
     return image
 
 def get_display_res():
@@ -349,6 +355,8 @@ if __name__ == '__main__':
 
         if frame is None:
             print("Failed to get image from usb camera")
+        cv2.imshow('frame',frame)
+        cv2.waitKey(1)
         # 把图片缩放到模型的输入尺寸
         # 获取算法模型的输入tensor 的尺寸
         h, w = models[0].inputs[0].properties.shape[2], models[0].inputs[0].properties.shape[3]
