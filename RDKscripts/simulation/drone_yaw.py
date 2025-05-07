@@ -4,14 +4,13 @@ collections.MutableMapping = abc.MutableMapping
 from dronekit import connect, VehicleMode
 import time
 from pymavlink import mavutil 
-from shared_vars import shared_x, shared_y, data_lock
 
 from dronecommands import setPositionTarget
+from shared_vars import shared_x,shared_y,coord_lock
 #yaw相关的值都使用角度值
 yawrate_max = 30
 person_mid = 256
-person_x = 256
-def arm_and_takeoff(aTargetAltitude):
+def arm_and_takeoff(vehicle,aTargetAltitude):
     """
     Arms vehicle and fly to aTargetAltitude.
     """
@@ -47,18 +46,23 @@ def arm_and_takeoff(aTargetAltitude):
             break
         time.sleep(1)
 
+def main():
+    vehicle = connect('udp:0.0.0.0:14550', wait_ready=True)
+    print("drone connected")
+    time.sleep(1)
+    arm_and_takeoff(vehicle,5)
+    print("reached 5 meters")
+    time.sleep(1)
+    print("start to track")
+    while(1):
+        with coord_lock:
+            person_x = shared_x.value
+            person_y = shared_y.value
+        print("person_x = ",person_x)
+        yawrate = (person_x - person_mid)*yawrate_max/person_mid
+        print("yaw_rate = ",yawrate)
+        setPositionTarget(vehicle,(0,0),yawrate)
+        time.sleep(0.1)
 
-vehicle = connect('/dev/ttyUSB0', wait_ready=True)
-print("drone connected")
-time.sleep(1)
-arm_and_takeoff(5)
-print("reached 5 meters")
-time.sleep(1)
-print("start to track")
-while(1):
-    with data_lock:
-        person_x = shared_x.value
-        person_y = shared_y.value
-    yawrate = (person_x - person_mid)*yawrate_max/person_mid
-    setPositionTarget(vehicle,(0,0),yawrate)
-    time.sleep(0.1)
+if __name__ == "__main__":
+    main()

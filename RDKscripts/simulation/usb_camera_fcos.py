@@ -29,12 +29,7 @@ from time import time
 import ctypes
 import json
 
-from shared_vars import shared_x, shared_y, data_lock
-
-def update_person_position(x, y):
-    with data_lock:  # 自动加锁
-        shared_x.value = x
-        shared_y.value = y
+from shared_vars import shared_x,shared_y,coord_lock
 
 def signal_handler(signal, frame):
     print("\nExiting program")
@@ -172,6 +167,8 @@ def bgr2nv12_opencv(image):
 
 def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_classes()):
     """draw the bboxes in the original image and rescale the coordinates"""
+    global person_x
+    global person_y
     num_classes = len(classes)
     image_h, image_w, channel = image.shape
     hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
@@ -200,9 +197,9 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
                 person_detected = True
                 person_x = (coor[0]+coor[2])/2
                 person_y = (coor[1]+coor[3])/2
+                #print(f"[坐标更新] shared_x: {shared_x.value}, shared_y: {shared_y.value}")
                 #print(f"[坐标更新] person_x: {person_x:.2f}, person_y: {person_y:.2f}")
-                print(f"[坐标更新] shared_x: {shared_x}, shared_y: {shared_y}")
-                update_person_position(person_x, person_y)
+
         # coor = limit_display_cord(bbox)
         coor[0] = int(coor[0] * scale_x)
         coor[1] = int(coor[1] * scale_y)
@@ -230,9 +227,12 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
         #    classes_name, score))
     #    cv2.imwrite("demo.jpg", image)
     if not person_detected:
+        #print("no person detected")
         person_x = 256
         person_y = 256
-        update_person_position(person_x, person_y)
+    with coord_lock:
+        shared_x.value = int(person_x)
+        shared_y.value = int(person_y)
     return image
 
 def get_display_res():
@@ -271,8 +271,8 @@ def print_properties(pro):
     print("layout:", pro.layout)
     print("shape:", pro.shape)
 
-if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal_handler)
+def main():
+    #signal.signal(signal.SIGINT, signal_handler)
 
     models = dnn.load('/app/pydev_demo/models/fcos_512x512_nv12.bin')
     # 打印输入 tensor 的属性
@@ -416,3 +416,6 @@ if __name__ == '__main__':
             print("FPS: {:.2f}".format(image_counter / (finish_time - start_time)))
             start_time = finish_time
             image_counter = 0
+
+if __name__ == "__main__":
+    main()
