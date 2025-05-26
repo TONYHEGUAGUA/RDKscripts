@@ -166,7 +166,6 @@ def bgr2nv12_opencv(image):
 
 
 def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_classes()):
-    """draw the bboxes in the original image and rescale the coordinates"""
     global person_x
     global person_y
     num_classes = len(classes)
@@ -180,59 +179,56 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
     fontScale = 0.5
     bbox_thick = int(0.6 * (image_h + image_w) / 600)
 
-    # Scaling factors from original to target resolution
+    # 计算缩放比例
     scale_x = target_w / ori_w
     scale_y = target_h / ori_h
     person_detected = False
+
     for i, result in enumerate(bboxes):
-        bbox = result['bbox']  # 矩形框位置信息
-        score = result['score']  # 得分
-        id = int(result['id'])  # id
-        name = result['name']  # 类别名称
+        bbox = result['bbox']
+        score = result['score']
+        id = int(result['id'])
+        name = result['name']
         coor = [round(i) for i in bbox]
-        # Rescale the bbox coordinates
-        if(name == "person"):
-            #检测到人了，读取坐标
-            if coor is not None:
-                person_detected = True
-                person_x = (coor[0]+coor[2])/2
-                person_y = (coor[1]+coor[3])/2
-                #print(f"[坐标更新] shared_x: {shared_x.value}, shared_y: {shared_y.value}")
-                #print(f"[坐标更新] person_x: {person_x:.2f}, person_y: {person_y:.2f}")
 
-        # coor = limit_display_cord(bbox)
-        coor[0] = int(coor[0] * scale_x)
-        coor[1] = int(coor[1] * scale_y)
-        coor[2] = int(coor[2] * scale_x)
-        coor[3] = int(coor[3] * scale_y)
+        # 仅处理 "person" 类别
+        if name == "person":
+            person_detected = True
+            # 计算中心坐标（用于共享变量）
+            person_x = (coor[0] + coor[2]) / 2
+            person_y = (coor[1] + coor[3]) / 2
+            # 调整坐标到目标分辨率
+            coor[0] = int(coor[0] * scale_x)
+            coor[1] = int(coor[1] * scale_y)
+            coor[2] = int(coor[2] * scale_x)
+            coor[3] = int(coor[3] * scale_y)
 
-        bbox_color = colors[id]
-        c1, c2 = (coor[0], coor[1]), (coor[2], coor[3])
-        cv2.rectangle(image, c1, c2, bbox_color, bbox_thick)
-        classes_name = name
-        bbox_mess = '%s: %.2f' % (classes_name, score)
-        t_size = cv2.getTextSize(bbox_mess,
-                                 0,
-                                 fontScale,
-                                 thickness=bbox_thick // 2)[0]
-        cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3),
-                      bbox_color, -1)
-        cv2.putText(image,
-                    bbox_mess, (c1[0], c1[1] - 2),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale, (0, 0, 0),
-                    bbox_thick // 2,
-                    lineType=cv2.LINE_AA)
-        #print("{} is in the picture with confidence:{:.4f}".format(
-        #    classes_name, score))
-    #    cv2.imwrite("demo.jpg", image)
+            # 定义高亮颜色（绿色框 + 红色文本）
+            bbox_color = (0, 255, 0)  # BGR格式的绿色
+            text_color = (0, 0, 255)   # BGR格式的红色
+
+            # 绘制边界框（加粗）
+            c1, c2 = (coor[0], coor[1]), (coor[2], coor[3])
+            cv2.rectangle(image, c1, c2, bbox_color, bbox_thick + 2)
+
+            # 绘制类别和置信度（背景填充）
+            bbox_mess = f'{name}: {score:.2f}'
+            t_size = cv2.getTextSize(bbox_mess, cv2.FONT_HERSHEY_SIMPLEX, fontScale, bbox_thick // 2)[0]
+            cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)
+            cv2.putText(image, bbox_mess, (c1[0], c1[1] - 2),
+                        cv2.FONT_HERSHEY_SIMPLEX, fontScale, text_color,
+                        bbox_thick // 2, lineType=cv2.LINE_AA)
+
+    # 未检测到人时的默认坐标
     if not person_detected:
-        #print("no person detected")
         person_x = 256
         person_y = 256
+
+    # 更新共享坐标
     with coord_lock:
         shared_x.value = int(person_x)
         shared_y.value = int(person_y)
+
     return image
 
 def get_display_res():
@@ -356,8 +352,6 @@ def main():
 
         if frame is None:
             print("Failed to get image from usb camera")
-        cv2.imshow('frame',frame)
-        cv2.waitKey(1)
         # 把图片缩放到模型的输入尺寸
         # 获取算法模型的输入tensor 的尺寸
         h, w = models[0].inputs[0].properties.shape[2], models[0].inputs[0].properties.shape[3]
@@ -404,7 +398,8 @@ def main():
         box_bgr = draw_bboxs(frame, data, fcos_postprocess_info.width, fcos_postprocess_info.height, disp_w, disp_h)
 
         # cv2.imwrite("imf.jpg", box_bgr)
-
+        cv2.imshow('frame',box_bgr)
+        cv2.waitKey(1)
         # Convert to nv12 for HDMI display
         box_nv12 = bgr2nv12_opencv(box_bgr)
         disp.set_img(box_nv12.tobytes())
