@@ -182,52 +182,85 @@ def draw_bboxs(image, bboxes, ori_w, ori_h, target_w, target_h, classes=get_clas
     # 计算缩放比例
     scale_x = target_w / ori_w
     scale_y = target_h / ori_h
-    person_detected = False
+    screen_center = (320, 240)  # 屏幕中心点
 
-    for i, result in enumerate(bboxes):
+    # 存储所有 person 的坐标和距离
+    person_list = []
+    min_distance = float('inf')
+    closest_x, closest_y = 320, 240  # 默认值
+
+    # 第一次遍历：收集所有 person 的距离信息
+    for result in bboxes:
         bbox = result['bbox']
         score = result['score']
         id = int(result['id'])
         name = result['name']
+        if name != "person":
+            continue  # 只处理 person 类别
+        
         coor = [round(i) for i in bbox]
+        # 计算缩放后中心点
+        scaled_coor = [
+            int(coor[0] * scale_x),
+            int(coor[1] * scale_y),
+            int(coor[2] * scale_x),
+            int(coor[3] * scale_y)
+        ]
+        center_x = (scaled_coor[0] + scaled_coor[2]) / 2
+        center_y = (scaled_coor[1] + scaled_coor[3]) / 2
+        distance = pow(center_x - screen_center[0],2) + pow(center_y - screen_center[1],2)
 
-        # 仅处理 "person" 类别
-        if name == "person":
-            person_detected = True
-            # 计算中心坐标（用于共享变量）
-            person_x = (coor[0] + coor[2]) / 2
-            person_y = (coor[1] + coor[3]) / 2
-            # 调整坐标到目标分辨率
-            coor[0] = int(coor[0] * scale_x)
-            coor[1] = int(coor[1] * scale_y)
-            coor[2] = int(coor[2] * scale_x)
-            coor[3] = int(coor[3] * scale_y)
+        # 记录 person 信息
+        person_list.append({
+            "scaled_coor": scaled_coor,
+            "distance": distance,
+            "original_coor": coor,
+            "score": score
+        })
 
-            # 定义高亮颜色（绿色框 + 红色文本）
-            bbox_color = (0, 255, 0)  # BGR格式的绿色
-            text_color = (0, 0, 255)   # BGR格式的红色
+        # 更新最近 person 的坐标
+        if distance < min_distance:
+            min_distance = distance
+            closest_x = (coor[0] + coor[2]) / 2  # 原始坐标中心（未缩放）
+            closest_y = (coor[1] + coor[3]) / 2
 
-            # 绘制边界框（加粗）
-            c1, c2 = (coor[0], coor[1]), (coor[2], coor[3])
-            cv2.rectangle(image, c1, c2, bbox_color, bbox_thick + 2)
+    # 第二次遍历：绘制边界框（根据距离选择颜色）
+    for person in person_list:
+        scaled_coor = person["scaled_coor"]
+        distance = person["distance"]
+        coor = person["original_coor"]
+        score = person["score"]
 
-            # 绘制类别和置信度（背景填充）
-            bbox_mess = f'{name}: {score:.2f}'
-            t_size = cv2.getTextSize(bbox_mess, cv2.FONT_HERSHEY_SIMPLEX, fontScale, bbox_thick // 2)[0]
-            cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)
-            cv2.putText(image, bbox_mess, (c1[0], c1[1] - 2),
-                        cv2.FONT_HERSHEY_SIMPLEX, fontScale, text_color,
-                        bbox_thick // 2, lineType=cv2.LINE_AA)
+        # 判断是否为最近 person
+        if distance == min_distance:
+            bbox_color = (0, 0, 255)   # 红色框
+            text_color = (255, 255, 255)  # 白色文本
+        else:
+            bbox_color = (0, 255, 0)   # 绿色框
+            text_color = (0, 0, 255)    # 红色文本
 
-    # 未检测到人时的默认坐标
-    if not person_detected:
-        person_x = 256
-        person_y = 256
+        # 调整坐标到目标分辨率
+        coor[0] = int(coor[0] * scale_x)
+        coor[1] = int(coor[1] * scale_y)
+        coor[2] = int(coor[2] * scale_x)
+        coor[3] = int(coor[3] * scale_y)
+
+        # 绘制边界框
+        c1, c2 = (coor[0], coor[1]), (coor[2], coor[3])
+        cv2.rectangle(image, c1, c2, bbox_color, bbox_thick + 2)
+
+        # 绘制标签
+        bbox_mess = f'person: {score:.2f}'
+        t_size = cv2.getTextSize(bbox_mess, cv2.FONT_HERSHEY_SIMPLEX, fontScale, bbox_thick // 2)[0]
+        cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)
+        cv2.putText(image, bbox_mess, (c1[0], c1[1] - 2),
+                    cv2.FONT_HERSHEY_SIMPLEX, fontScale, text_color,
+                    bbox_thick // 2, lineType=cv2.LINE_AA)
 
     # 更新共享坐标
     with coord_lock:
-        shared_x.value = int(person_x)
-        shared_y.value = int(person_y)
+        shared_x.value = int(closest_x)
+        shared_y.value = int(closest_y)
 
     return image
 
