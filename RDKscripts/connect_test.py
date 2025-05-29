@@ -8,7 +8,7 @@ import time
 #vehicle = connect('/dev/ttyACM0', wait_ready=True, baud=57600)
 #vehicle = connect('/dev/ttyUSB0', wait_ready=True, baud=57600) #降低波特率后成功
 
-vehicle = connect('/dev/ttyS1', wait_ready=True,baud=921600,rate=30) #成功通过导线直接连接飞控串口4
+vehicle = connect('/dev/ttyS1', wait_ready=True,baud=921600,rate=30) #成功通过导线直接连接飞控串口3
 print("drone connected")
 # vehicle is an instance of the Vehicle class
 while(1):
