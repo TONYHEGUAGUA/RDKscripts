@@ -498,8 +498,8 @@ def main():
         ws_server.update_frame(jpeg.tobytes())
 
         # cv2.imwrite("imf.jpg", box_bgr)
-        cv2.imshow('frame',box_bgr)
-        cv2.waitKey(1)
+        #cv2.imshow('frame',box_bgr)
+        #cv2.waitKey(1)
         # Convert to nv12 for HDMI display
         box_nv12 = bgr2nv12_opencv(box_bgr)
         disp.set_img(box_nv12.tobytes())
