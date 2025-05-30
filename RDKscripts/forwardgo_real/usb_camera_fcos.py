@@ -31,6 +31,16 @@ import json
 
 from shared_vars import shared_x,shared_y,coord_lock
 
+# ====================== WebSocket导入与全局变量定义 ======================
+import asyncio
+import websockets
+import threading
+from io import BytesIO
+
+WS_PORT = 8765               # WebSocket端口
+JPEG_QUALITY = 85            # JPEG压缩质量（1-100）
+MAX_FPS = 25                 # 最大传输帧率
+
 def signal_handler(signal, frame):
     print("\nExiting program")
     sys.exit(0)
@@ -300,8 +310,49 @@ def print_properties(pro):
     print("layout:", pro.layout)
     print("shape:", pro.shape)
 
+# ====================== WebSocket配置部分 ======================
+class WebSocketServer:
+    def __init__(self):
+        self.clients = set()
+        self.lock = threading.Lock()
+        self.last_frame = None
+        
+    async def handler(self, websocket):  # 正确包含两个参数
+        """处理客户端连接"""
+        print(websocket.request.path)
+        with self.lock:
+            self.clients.add(websocket)
+        try:
+            while True:
+                if self.last_frame:
+                    await websocket.send(self.last_frame)
+                await asyncio.sleep(1/MAX_FPS)
+        except websockets.ConnectionClosed:
+            pass
+        finally:
+            with self.lock:
+                self.clients.remove(websocket)
+                
+    def update_frame(self, frame):
+        """更新待发送的帧数据"""
+        with self.lock:
+            self.last_frame = frame
+            
+    def start(self):
+        """启动服务"""
+        async def _start():
+            async with websockets.serve(self.handler, "0.0.0.0", WS_PORT):
+                await asyncio.Future()
+        threading.Thread(target=lambda: asyncio.run(_start())).start()
+
 def main():
     #signal.signal(signal.SIGINT, signal_handler)
+
+    # ====================== WebSocket main部分 ======================
+    # 初始化WebSocket服务
+    ws_server = WebSocketServer()
+    ws_server.start()
+    print(f"WebSocket服务已启动,端口:{WS_PORT}")
 
     models = dnn.load('/app/pydev_demo/models/fcos_512x512_nv12.bin')
     # 打印输入 tensor 的属性
@@ -429,6 +480,22 @@ def main():
         # Draw bboxs
         # box_bgr = draw_bboxs(frame, data)
         box_bgr = draw_bboxs(frame, data, fcos_postprocess_info.width, fcos_postprocess_info.height, disp_w, disp_h)
+
+        # ====================== WebSocket main部分 ======================
+        # draw result
+        # 解析JSON字符串
+        data = json.loads(result_str[14:])
+
+        if frame.shape[0]!=disp_h or frame.shape[1]!=disp_w:
+            frame = cv2.resize(frame, (disp_w,disp_h), interpolation=cv2.INTER_AREA)
+
+        # Draw bboxs
+        # box_bgr = draw_bboxs(frame, data)
+        box_bgr = draw_bboxs(frame, data, fcos_postprocess_info.width, fcos_postprocess_info.height, disp_w, disp_h)
+
+        # WebSocket转换并发送JPEG帧
+        _, jpeg = cv2.imencode('.jpg', box_bgr, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+        ws_server.update_frame(jpeg.tobytes())
 
         # cv2.imwrite("imf.jpg", box_bgr)
         cv2.imshow('frame',box_bgr)

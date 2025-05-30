@@ -444,7 +444,8 @@ def main():
         t2 = time()
         # print("FcosdoProcess time is :", (t2 - t1))
         # print(result_str)
-
+        
+        # ====================== WebSocket main部分 ======================
         # draw result
         # 解析JSON字符串
         data = json.loads(result_str[14:])
