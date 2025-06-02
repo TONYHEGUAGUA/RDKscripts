@@ -14,10 +14,11 @@ def main():
     vehicle = connect('/dev/ttyS1', wait_ready=True,baud=921600,rate=30) #成功通过导线直接连接飞控串口3
     print("drone connected")
     time.sleep(1)
-    start_position = vehicle.location.global_relative_frame
-    condition_yaw(vehicle,0,True)
     arm_and_takeoff(vehicle,5)
     print("reached 5 meters")
+    time.sleep(1)
+    condition_yaw(vehicle,0,True)
+    print("send yaw condition cmd")
     time.sleep(1)
     print("start to track in forward")
 
