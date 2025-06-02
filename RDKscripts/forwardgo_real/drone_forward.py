@@ -22,6 +22,8 @@ def main():
     print("start to track in forward")
 
     while(1):
+        if not(vehicle.mode == VehicleMode("GUIDED")):
+            break;
         with coord_lock:
             person_x = shared_x.value
             person_y = shared_y.value
