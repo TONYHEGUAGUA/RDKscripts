@@ -68,6 +68,9 @@ print("going forward")
 for x in range(0,5):
         send_body_velocity(vehicle,0.5,0,0)
         time.sleep(1)
+for x in range(0,5):
+        send_body_velocity(vehicle,-0.5,0,0)
+        time.sleep(1)
     #loop
 #while(1):
 #	vehicle.send_mavlink(msg)

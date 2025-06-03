@@ -91,6 +91,7 @@ def setYaw(vehicle: Vehicle, relativeYaw: float) -> None:
     vehicle.flush()
 
 def send_body_velocity(vehicle: Vehicle,velocity_x, velocity_y, velocity_z):
+    #发送基于机体坐标系的速度移动指令
     msg = vehicle.message_factory.set_position_target_local_ned_encode(
         0,       # time_boot_ms (not used)
         0, 0,    # target system, target component
