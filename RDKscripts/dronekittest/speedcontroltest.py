@@ -127,10 +127,11 @@ start_position = vehicle.location.global_relative_frame
 
 
 
-condition_yaw(0,True)
+
 arm_and_takeoff(5)
-#condition_yaw(0,True)
-time.sleep(5)
+#condition_yaw(90,True)
+condition_yaw(0,True)
+time.sleep(1)
 send_ned_velocity(forward_speed,0,0,5)
     #loop
 #while(1):

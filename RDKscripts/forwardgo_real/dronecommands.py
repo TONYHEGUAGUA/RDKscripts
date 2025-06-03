@@ -90,6 +90,20 @@ def setYaw(vehicle: Vehicle, relativeYaw: float) -> None:
     vehicle.send_mavlink(msg)
     vehicle.flush()
 
+def send_body_velocity(vehicle: Vehicle,velocity_x, velocity_y, velocity_z):
+    msg = vehicle.message_factory.set_position_target_local_ned_encode(
+        0,       # time_boot_ms (not used)
+        0, 0,    # target system, target component
+        mavutil.mavlink.MAV_FRAME_BODY_NED, # frame
+        0b0000111111000111, # type_mask (only speeds enabled)
+        0, 0, 0, # x, y, z positions (not used)
+        velocity_x, velocity_y, velocity_z, # x, y, z velocity in m/s
+        0, 0, 0, # x, y, z acceleration (not supported yet, ignored in GCS_Mavlink)
+        0, 0)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink) 
+    vehicle.send_mavlink(msg)
+
+
+
 def send_ned_velocity(vehicle: Vehicle,velocity_x, velocity_y, velocity_z):
     """
     Move vehicle in direction based on specified velocity vectors and
