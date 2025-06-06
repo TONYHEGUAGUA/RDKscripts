@@ -113,7 +113,7 @@ def send_body_velocity_yaw_rate(vehicle: Vehicle,velocity_x, velocity_y, velocit
         0, 0, 0, # x, y, z positions (not used)
         velocity_x, velocity_y, velocity_z, # x, y, z velocity in m/s
         0, 0, 0, # x, y, z acceleration (not supported yet, ignored in GCS_Mavlink)
-        0, 0)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink) 
+        0, yaw_rate)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink) 
     vehicle.send_mavlink(msg)
 
 def send_ned_velocity(vehicle: Vehicle,velocity_x, velocity_y, velocity_z):
