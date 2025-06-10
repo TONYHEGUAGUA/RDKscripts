@@ -16,9 +16,12 @@
 # limitations under the License.
 ################################################################################
 
+
+
 import sys
 import signal
 import os
+os.environ["DISPLAY"] = ":0"  # 在导入任何图形库之前设置
 from hobot_dnn import pyeasy_dnn as dnn
 from hobot_vio import libsrcampy as srcampy
 import numpy as np
