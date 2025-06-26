@@ -11,7 +11,7 @@ person_mid = 256
 
 
 def main():
-    vehicle = connect('/dev/ttyS1', wait_ready=True,baud=921600,rate=30) #成功通过导线直接连接飞控串口3
+    vehicle = connect('/dev/ttyS1', wait_ready=True,baud=921600,rate=30,timeout=60) #成功通过导线直接连接飞控串口3
     print("drone connected")
     time.sleep(1)
     start_position = vehicle.location.global_relative_frame

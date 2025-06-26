@@ -350,6 +350,10 @@ class WebSocketServer:
 
 def main():
     #signal.signal(signal.SIGINT, signal_handler)
+    ###创建编码器
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用XVID编码器
+    out_box = cv2.VideoWriter('output_video_boxes.avi', fourcc, 15.0, (640, 480))
+    #out_fresh = cv2.VideoWriter('output_video_fresh.avi', fourcc, 30.0, (1280, 720))
 
     # ====================== WebSocket main部分 ======================
     # 初始化WebSocket服务
@@ -434,7 +438,7 @@ def main():
     image_counter = 0
     while True:
         _ ,frame = cap.read()
-
+        #out_fresh.write(frame)
         # print(frame.shape)
 
         if frame is None:
@@ -496,10 +500,13 @@ def main():
         # box_bgr = draw_bboxs(frame, data)
         box_bgr = draw_bboxs(frame, data, fcos_postprocess_info.width, fcos_postprocess_info.height, disp_w, disp_h)
 
+        out_box.write(box_bgr)  # 写入帧到输出文件
+
         # WebSocket转换并发送JPEG帧
         _, jpeg = cv2.imencode('.jpg', box_bgr, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
         ws_server.update_frame(jpeg.tobytes())
 
+        
         # cv2.imwrite("imf.jpg", box_bgr)
         #cv2.imshow('frame',box_bgr)
         #cv2.waitKey(1)
