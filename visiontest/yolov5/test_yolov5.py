@@ -147,6 +147,11 @@ def find_first_usb_camera():
 # ... 前面的导入和类定义保持不变 ...
 
 if __name__ == '__main__':
+
+    ###创建编码器
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用XVID编码器
+    out_box = cv2.VideoWriter('output_video_boxes.avi', fourcc, 15.0, (640, 480))
+
     # 1. 初始化摄像头
     if len(sys.argv) > 1:
         video_device = sys.argv[1]
@@ -247,8 +252,7 @@ if __name__ == '__main__':
                        font, 0.5, (0, 255, 0), 1)
         
         # 10. 实时显示
-        cv2.imshow('YOLOv5 Real-time Detection', frame)
-        cv2.waitKey(0)
+        out_box.write(frame)  # 写入帧到输出文件
     # 11. 释放资源
     cap.release()
     cv2.destroyAllWindows()

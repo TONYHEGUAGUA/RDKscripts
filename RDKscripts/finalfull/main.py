@@ -9,7 +9,8 @@ import time
 import json
 
 vehicle = None
-
+mode_now = None
+mode_before = None
 
 ##################连接飞控#######################
 def connect_ardupilot():
@@ -107,8 +108,8 @@ def execute_command(service_id, paras):
             #activate_stabilize_mode()
             print("mode = %s" % number_to_mode(mode_value))
         vehicle.mode    = VehicleMode(number_to_mode(mode_value))
-        mode_data_to_send = f'AT+HMPUB=1,"$oc/devices/686544a6d582f20018375e4d_mode/sys/properties/report",60,"{{\\"services\\":[{{\\"service_id\\":\\"mode\\",\\"properties\\":{{\\"mode\\":{mode_value}}}}}]}}"'
-        send_at_command(mode_data_to_send)
+        #mode_data_to_send = f'AT+HMPUB=1,"$oc/devices/686544a6d582f20018375e4d_mode/sys/properties/report",60,"{{\\"services\\":[{{\\"service_id\\":\\"mode\\",\\"properties\\":{{\\"mode\\":{mode_value}}}}}]}}"'
+        #send_at_command(mode_data_to_send)
     elif service_id == "mission":
         mission_value = paras.get("MissionControl")
         if mission_value == 1:
@@ -121,13 +122,21 @@ def execute_command(service_id, paras):
         send_at_command(mission_data_to_send)
 #循环
 def loop():
+    global mode_now
+    global mode_before
+    mode_now = vehicle.mode
+    if not(mode_now == mode_before):
+        mode_data_to_send = f'AT+HMPUB=1,"$oc/devices/686544a6d582f20018375e4d_mode/sys/properties/report",60,"{{\\"services\\":[{{\\"service_id\\":\\"mode\\",\\"properties\\":{{\\"mode\\":{mode_to_number(mode_now)}}}}}]}}"'
+        send_at_command(mode_data_to_send)
+        print("mode change")
+
     #print("Mode: %s" % vehicle.mode.name)
     #print("Modenumber: %d" % mode_to_number(vehicle.mode.name))
     #print("Battery: %s" % vehicle.battery)
     #print(round(vehicle.battery.voltage, 2))
 
     ###AT发送模式
-    mode_data_to_send = f'AT+HMPUB=1,"$oc/devices/686544a6d582f20018375e4d_mode/sys/properties/report",60,"{{\\"services\\":[{{\\"service_id\\":\\"mode\\",\\"properties\\":{{\\"mode\\":{mode_to_number(vehicle.mode.name)}}}}}]}}"'
+    #mode_data_to_send = f'AT+HMPUB=1,"$oc/devices/686544a6d582f20018375e4d_mode/sys/properties/report",60,"{{\\"services\\":[{{\\"service_id\\":\\"mode\\",\\"properties\\":{{\\"mode\\":{mode_to_number(vehicle.mode.name)}}}}}]}}"'
     #send_at_command(mode_data_to_send)
 
     ###AT发送当前任务
@@ -144,7 +153,7 @@ def loop():
         service_id, _, paras = parse_hmrec_message(raw_data)
         if service_id:
             execute_command(service_id, paras)
-
+    mode_before = mode_now
     time.sleep(0.1)
 
 send_at_connect()
